@@ -1,4 +1,9 @@
-use axum::{extract::State, response::IntoResponse, routing::get, Router};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
 use rand::Rng;
 use std::net::SocketAddr;
 
@@ -20,7 +25,7 @@ async fn main() {
     let state = AppState { questions };
 
     let app = Router::new()
-        .route("/", get(get_question))
+        .route("/", get(get_question).post(post_answer))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -34,4 +39,8 @@ async fn main() {
 async fn get_question(State(state): State<AppState>) -> impl IntoResponse {
     let num = rand::thread_rng().gen_range(0..state.questions.len());
     state.questions[num].to_string()
+}
+
+async fn post_answer(State(state): State<AppState>, Path(answer): Path<String>) -> IntoResponse {
+    unimplemented!();
 }
