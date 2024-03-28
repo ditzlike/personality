@@ -437,6 +437,7 @@ dependencies = [
  "axum",
  "axum-server",
  "rand",
+ "serde",
  "tokio",
 ]
 

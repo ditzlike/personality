@@ -1,7 +1,7 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Json, Query, State},
     response::IntoResponse,
-    routing::{get, post},
+    routing::get,
     Router,
 };
 use rand::Rng;
@@ -25,7 +25,8 @@ async fn main() {
     let state = AppState { questions };
 
     let app = Router::new()
-        .route("/", get(get_question).post(post_answer))
+        .route("/", get(get_question))
+        .route("/query", get(get_question_with_query))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -41,6 +42,16 @@ async fn get_question(State(state): State<AppState>) -> impl IntoResponse {
     state.questions[num].to_string()
 }
 
-async fn post_answer(State(state): State<AppState>, Path(answer): Path<String>) -> IntoResponse {
-    unimplemented!();
+async fn get_question_with_query(
+    State(state): State<AppState>,
+    Query(params): Query<QuestionParams>,
+) -> impl IntoResponse {
+    // Access query parameters from `params` and use them as needed
+    let num = params.question_number;
+    state.questions[num].to_string()
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct QuestionParams {
+    question_number: usize,
 }
