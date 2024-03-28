@@ -1,7 +1,8 @@
 use axum::{
     extract::{Json, Query, State},
+    http::{Response, StatusCode},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use rand::Rng;
@@ -26,7 +27,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(get_question))
-        .route("/query", get(get_question_with_query))
+        .route("/", post(post_question_with_query))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -42,13 +43,19 @@ async fn get_question(State(state): State<AppState>) -> impl IntoResponse {
     state.questions[num].to_string()
 }
 
-async fn get_question_with_query(
+async fn post_question_with_query(
     State(state): State<AppState>,
     Query(params): Query<QuestionParams>,
 ) -> impl IntoResponse {
-    // Access query parameters from `params` and use them as needed
+    if !(0..=10).contains(&params.question_number) {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body("Question number must be between 0 and 10".into())
+            .unwrap();
+    }
+
     let num = params.question_number;
-    state.questions[num].to_string()
+    Response::new(state.questions[num].to_string())
 }
 
 #[derive(Debug, serde::Deserialize)]
