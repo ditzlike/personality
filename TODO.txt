@@ -1,0 +1,8 @@
+Erstmal nur eine Sesh
+Beliebig viele Spieler, die sich registrieren können
+- Spieler unterscheiden können
+- Leute anmelden können, die kriegen ein Sessiontoken, damit ich eindeutig zuordnen kann, wer was geschickt hat
+- dazu ein Enum, das den globalen Gamestate so kodiert, ob ich in der Anmeldephase bin, beim Spielen bin, die Rundenanzahl oder was weiß ich
+- Endgame
+Ein Spieler ist jeweils dran, geht round robin
+Intern kodiertes Spielefeld, wann Spieler genau welche Kategorie mit welcher Frage drauf bekommt (Evtl Option vorbehalten, dass man andere Fragen wählen kann)
