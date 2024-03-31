@@ -11,6 +11,12 @@ use std::net::SocketAddr;
 #[derive(Clone)]
 struct AppState {
     questions: Vec<String>,
+    players: Vec<Player>,
+}
+
+#[derive(Clone)]
+struct Player {
+    name: String,
 }
 
 #[tokio::main]
@@ -23,11 +29,17 @@ async fn main() {
         .map(|line| line.to_string())
         .collect();
 
-    let state = AppState { questions };
+    let mut state = AppState {
+        questions: questions,
+        players: Vec::new(),
+    };
+
+    let mut players: Vec<Player> = Vec::new();
 
     let app = Router::new()
         .route("/", get(get_question))
         .route("/", post(post_question_with_query))
+        .route("/newplayer", post(post_player))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -41,6 +53,11 @@ async fn main() {
 async fn get_question(State(state): State<AppState>) -> impl IntoResponse {
     let num = rand::thread_rng().gen_range(0..state.questions.len());
     state.questions[num].to_string()
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct QuestionParams {
+    question_number: usize,
 }
 
 async fn post_question_with_query(
@@ -58,7 +75,21 @@ async fn post_question_with_query(
     Response::new(state.questions[num].to_string())
 }
 
+async fn post_player(
+    State(mut state): State<AppState>,
+    Query(params): Query<PlayerName>,
+) -> impl IntoResponse {
+    let new_player = Player {
+        name: params.player_name,
+    };
+    state.players.push(new_player);
+    Response::new(format!(
+        "Created new player {}",
+        state.players.last().unwrap().name
+    ))
+}
+
 #[derive(Debug, serde::Deserialize)]
-struct QuestionParams {
-    question_number: usize,
+struct PlayerName {
+    player_name: String,
 }
