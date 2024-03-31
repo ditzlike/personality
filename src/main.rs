@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Json, Query, State},
+    extract::{Query, State},
     http::{Response, StatusCode},
     response::IntoResponse,
     routing::{get, post},
@@ -62,13 +62,10 @@ async fn get_players(State(state): State<AppState>) -> impl IntoResponse {
             .players
             .lock()
             .expect("Players were poisoned. This means thread panicked while locked");
+        //TODO take care of the trailing comma
         let player_names = players
             .iter()
             .fold(String::new(), |acc, player| acc + &player.name + ", ");
-        //let player_names: Vec<&str> = players.iter().map(|player| &player.name[..]).collect();
-        //// Convert the vector of names into a single string separated by commas
-        //let names_string = player_names.join(", ");
-        // Return the string containing all player names
         println!("names: {player_names}");
         player_names
     }
