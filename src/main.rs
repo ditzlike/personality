@@ -7,11 +7,12 @@ use axum::{
 };
 use rand::Rng;
 use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 struct AppState {
     questions: Vec<String>,
-    players: Vec<Player>,
+    players: Arc<Mutex<Vec<Player>>>,
 }
 
 #[derive(Clone)]
@@ -29,17 +30,16 @@ async fn main() {
         .map(|line| line.to_string())
         .collect();
 
-    let mut state = AppState {
+    let state = AppState {
         questions: questions,
-        players: Vec::new(),
+        players: Arc::new(Mutex::new(Vec::new())),
     };
-
-    let mut players: Vec<Player> = Vec::new();
 
     let app = Router::new()
         .route("/", get(get_question))
         .route("/", post(post_question_with_query))
-        .route("/newplayer", post(post_player))
+        .route("/players", post(post_player))
+        .route("/players", get(get_players))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -53,6 +53,25 @@ async fn main() {
 async fn get_question(State(state): State<AppState>) -> impl IntoResponse {
     let num = rand::thread_rng().gen_range(0..state.questions.len());
     state.questions[num].to_string()
+}
+
+async fn get_players(State(state): State<AppState>) -> impl IntoResponse {
+    // Extract names from players and collect them into a vector
+    {
+        let players = state
+            .players
+            .lock()
+            .expect("Players were poisoned. This means thread panicked while locked");
+        let player_names = players
+            .iter()
+            .fold(String::new(), |acc, player| acc + &player.name + ", ");
+        //let player_names: Vec<&str> = players.iter().map(|player| &player.name[..]).collect();
+        //// Convert the vector of names into a single string separated by commas
+        //let names_string = player_names.join(", ");
+        // Return the string containing all player names
+        println!("names: {player_names}");
+        player_names
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -76,17 +95,24 @@ async fn post_question_with_query(
 }
 
 async fn post_player(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Query(params): Query<PlayerName>,
 ) -> impl IntoResponse {
     let new_player = Player {
         name: params.player_name,
     };
-    state.players.push(new_player);
-    Response::new(format!(
-        "Created new player {}",
-        state.players.last().unwrap().name
-    ))
+
+    {
+        let mut players = state
+            .players
+            .lock()
+            .expect("Players were poisoned. This means thread panicked while locked");
+        players.push(new_player);
+        Response::new(format!(
+            "Created new player {}",
+            players.last().unwrap().name
+        ))
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]
